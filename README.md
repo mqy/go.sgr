@@ -1,10 +1,12 @@
 ## SGR (Select Graphic Rendition) for Go
 The package `sgr` provides methods to use colors and text-decoration in ANSI-escape-sequence compatible terminals. It has support for 256-colors and makes available text-decorations such as bold, underline, negative and blink.
 
+This repository is cloned from [foize/go.sgr](https://github.com/foize/go.sgr). README.md is slightly modified to match code changes.
+
 ### Installation
 Please use go-get to install this package.
 
-`go get github.com/foize/go.sgr`
+`go get github.com/mqy/go.sgr`
 
 ### Usage
 Typical usage is to use Parseln() or MustParseln(), and use the resulting string in succeeding `fmt` or `log` calls.
@@ -14,7 +16,7 @@ package main
 
 import (
 	"fmt"
-	"github.com/foize/go.sgr"
+	"github.com/mqy/go.sgr"
 )
 
 func main() {
