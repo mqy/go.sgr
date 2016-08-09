@@ -91,7 +91,8 @@ func ParseWithoutReset(format string) (string, error) {
 
 func parse(reset bool, newline bool, format string) (string, error) {
 	term := os.Getenv("TERM")
-	ignoreTags := (term != "xterm-256color")
+	// term, term-256color
+	printTags := strings.HasPrefix(term, "xterm")
 
 	// Builder used to build the colored string.
 	buf := new(bytes.Buffer)
@@ -131,7 +132,7 @@ func parse(reset bool, newline bool, format string) (string, error) {
 		}
 		idxEnd = idxStart + relBlockClose
 
-		if ! ignoreTags {
+		if printTags {
 			// found a block
 			block := format[idxStart + 1 : idxEnd]
 			fields := strings.Fields(block)
