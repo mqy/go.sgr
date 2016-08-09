@@ -2,7 +2,7 @@ package main
 
 import (
 	"fmt"
-	"go.sgr"
+	"github.com/mqy/go.sgr"
 )
 
 func main() {

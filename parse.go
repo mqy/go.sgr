@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"strconv"
 	"strings"
+	"os"
 )
 
 
@@ -89,13 +90,16 @@ func ParseWithoutReset(format string) (string, error) {
 }
 
 func parse(reset bool, newline bool, format string) (string, error) {
+	term := os.Getenv("TERM")
+	ignoreTags := (term != "xterm-256color")
+
 	// Builder used to build the colored string.
 	buf := new(bytes.Buffer)
 
 	// position in the parsing process
 	pos := 0
 
-	// index of the currenctly processing square bracket start
+	// index of the currently processing square bracket start
 	idxStart := 0
 	idxEnd := 0
 
@@ -127,39 +131,41 @@ func parse(reset bool, newline bool, format string) (string, error) {
 		}
 		idxEnd = idxStart + relBlockClose
 
-		// found a block
-		block := format[idxStart+1 : idxEnd]
-		fields := strings.Fields(block)
-		for _, field := range fields {
+		if ! ignoreTags {
+			// found a block
+			block := format[idxStart + 1 : idxEnd]
+			fields := strings.Fields(block)
+			for _, field := range fields {
 
-			if sgrString, blockCodeExists := blockCodes[field]; blockCodeExists {
-				buf.WriteString(sgrString)
-				continue
+				if sgrString, blockCodeExists := blockCodes[field]; blockCodeExists {
+					buf.WriteString(sgrString)
+					continue
+				}
+
+				isFgColor := strings.HasPrefix(field, "fg-")
+				isBgColor := strings.HasPrefix(field, "bg-")
+				if isFgColor || isBgColor {
+					// Check if given number is valid.
+					clr, err := strconv.Atoi(field[3:])
+					if err != nil {
+						return "", fmt.Errorf("Invalid code '%s' in block at position %d.", field, idxStart)
+					}
+					if clr < 0 || clr > 255 {
+						return "", fmt.Errorf("Invalid color code %s. Expecting 0-255 or a defined color.", field[3:])
+					}
+
+					// Add color sequence to the buffer
+					if isFgColor {
+						buf.WriteString(sgrStart + fgColorStart + field[3:] + sgrEnd)
+					} else {
+						buf.WriteString(sgrStart + bgColorStart + field[3:] + sgrEnd)
+					}
+					continue // next field
+				}
+
+				// Not a valid blockCode and not a fgColor or bgColor
+				return "", fmt.Errorf("Invalid code '%s' in block at position %d.", field, idxStart)
 			}
-
-			isFgColor := strings.HasPrefix(field, "fg-")
-			isBgColor := strings.HasPrefix(field, "bg-")
-			if isFgColor || isBgColor {
-				// Check if given number is valid.
-				clr, err := strconv.Atoi(field[3:])
-				if err != nil {
-					return "", fmt.Errorf("Invalid code '%s' in block at position %d.", field, idxStart)
-				}
-				if clr < 0 || clr > 255 {
-					return "", fmt.Errorf("Invalid color code %s. Expecting 0-255 or a defined color.", field[3:])
-				}
-
-				// Add color sequence to the buffer
-				if isFgColor {
-					buf.WriteString(sgrStart + fgColorStart + field[3:] + sgrEnd)
-				} else {
-					buf.WriteString(sgrStart + bgColorStart + field[3:] + sgrEnd)
-				}
-				continue // next field
-			}
-
-			// Not a valid blockCode and not a fgColor or bgColor
-			return "", fmt.Errorf("Invalid code '%s' in block at position %d.", field, idxStart)
 		}
 
 		// Change starting position for next iteration.
